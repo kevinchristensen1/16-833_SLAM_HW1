@@ -13,7 +13,7 @@ import time
 
 def visualize_map(occupancy_map):
     fig = plt.figure()
-    # plt.switch_backend('TkAgg')
+    plt.switch_backend('TkAgg')
     mng = plt.get_current_fig_manager();  # mng.resize(*mng.window.maxsize())
     plt.ion(); plt.imshow(occupancy_map, cmap='Greys'); plt.axis([0, 800, 0, 800]);
 
@@ -49,7 +49,26 @@ def init_particles_freespace(num_particles, occupancy_map):
     """
     TODO : Add your code here
     """ 
+    # Initializes empty np arrays
+    y0_vals = np.empty([num_particles,1])
+    x0_vals = np.empty([num_particles,1])
+    # Intializes all angles theta
+    theta0_vals = np.random.uniform( -3.14, 3.14, (num_particles, 1) )
 
+    for i in range(0,num_particles):
+        # Creates x0 and y0 doubles
+        y0_vals[i] = np.random.uniform( 0, 7000)
+        x0_vals[i] = np.random.uniform( 3000, 7000)
+        # If the particles are not in the hallways, generate new values until they are.
+        while occupancy_map[int(y0_vals[i]/10)][int(x0_vals[i]/10)] < 0 or occupancy_map[int(y0_vals[i]/10)][int(x0_vals[i]/10)]> 0.05:
+            
+            y0_vals[i] = np.random.uniform( 0, 7000)
+            x0_vals[i] = np.random.uniform( 3000, 7000)
+            
+    w0_vals = np.ones( (num_particles,1), dtype=np.float64)
+    w0_vals = w0_vals / num_particles
+    X_bar_init = np.hstack((x0_vals,y0_vals,theta0_vals,w0_vals))
+    
     return X_bar_init
 
 def main():
@@ -79,7 +98,7 @@ def main():
     resampler = Resampling()
 
     num_particles = 500
-    X_bar = init_particles_random(num_particles, occupancy_map)
+    X_bar = init_particles_freespace(num_particles, occupancy_map)
 
     vis_flag = 1
 
@@ -116,15 +135,16 @@ def main():
         X_bar_new = np.zeros( (num_particles,4), dtype=np.float64)
         u_t1 = odometry_robot
         for m in range(0, num_particles):
-
             """
             MOTION MODEL
             """
+            """
             x_t0 = X_bar[m, 0:3]
             x_t1 = motion_model.update(u_t0, u_t1, x_t0)
-
+            """
             """
             SENSOR MODEL
+            """
             """
             if (meas_type == "L"):
                 z_t = ranges
@@ -133,15 +153,14 @@ def main():
                 X_bar_new[m,:] = np.hstack((x_t1, w_t))
             else:
                 X_bar_new[m,:] = np.hstack((x_t1, X_bar[m,3]))
-        
-        X_bar = X_bar_new
-        u_t0 = u_t1
+            """
+        #X_bar = X_bar_new
+        #u_t0 = u_t1
 
         """
         RESAMPLING
         """
-        X_bar = resampler.low_variance_sampler(X_bar)
-
+        #X_bar = resampler.low_variance_sampler(X_bar)
         if vis_flag:
             visualize_timestep(X_bar, time_idx)
 
