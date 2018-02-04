@@ -56,7 +56,7 @@ def test():
     
     comp = np.concatenate((X_bar[:,3:], X_bar_resampled[:,3:]), 1)
 
-    pdb.set_trace()
+    # pdb.set_trace()
 
     print(X_bar_resampled)
 
