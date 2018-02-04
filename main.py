@@ -72,7 +72,7 @@ def init_particles_freespace(num_particles, occupancy_map):
     return X_bar_init
 
 def main():
-
+    
     """
     Description of variables used
     u_t0 : particle state odometry reading [x, y, theta] at time (t-1) [odometry_frame]   
@@ -97,11 +97,17 @@ def main():
     sensor_model = SensorModel(occupancy_map)
     resampler = Resampling()
 
-    num_particles = 500
+    num_particles = 1
     X_bar = init_particles_freespace(num_particles, occupancy_map)
 
     vis_flag = 1
-
+    
+    # ---------------------------------------------------
+    # Weights are dummy weights for testing motion model
+    w0_vals = np.ones( (num_particles,1), dtype=np.float64)
+    w_t = w0_vals / num_particles
+    #----------------------------------------------------
+    
     """
     Monte Carlo Localization Algorithm : Main Loop
     """
@@ -116,6 +122,7 @@ def main():
         meas_vals = np.fromstring(line[2:], dtype=np.float64, sep=' ') # convert measurement values from string to double
 
         odometry_robot = meas_vals[0:3] # odometry reading [x, y, theta] in odometry frame
+ 
         time_stamp = meas_vals[-1]
 
         # if ((time_stamp <= 0.0) | (meas_type == "O")): # ignore pure odometry measurements for now (faster debugging) 
@@ -134,14 +141,21 @@ def main():
 
         X_bar_new = np.zeros( (num_particles,4), dtype=np.float64)
         u_t1 = odometry_robot
+    
         for m in range(0, num_particles):
             """
             MOTION MODEL
             """
-            """
+            
             x_t0 = X_bar[m, 0:3]
             x_t1 = motion_model.update(u_t0, u_t1, x_t0)
-            """
+            print x_t1
+            
+            # ---------------------------------------------------
+            # For testing Motion Model 
+            X_bar_new[m,:] = np.hstack((x_t1, w_t))
+            # ---------------------------------------------------
+            
             """
             SENSOR MODEL
             """
@@ -154,13 +168,14 @@ def main():
             else:
                 X_bar_new[m,:] = np.hstack((x_t1, X_bar[m,3]))
             """
-        #X_bar = X_bar_new
-        #u_t0 = u_t1
+        X_bar = X_bar_new
+        u_t0 = u_t1
 
         """
         RESAMPLING
         """
         #X_bar = resampler.low_variance_sampler(X_bar)
+        
         if vis_flag:
             visualize_timestep(X_bar, time_idx)
 
