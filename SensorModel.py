@@ -23,7 +23,7 @@ class SensorModel:
         
         self.step_size = 5
         
-        self.sigma_norm = 0.5
+        self.sig_norm = 0.5
         self.lambda_short = 0.5
         self.z_hit = 0.5
         self.z_rand = 0.25
@@ -64,7 +64,7 @@ class SensorModel:
             (1,-3),(1,-4),(1,-4),(1,-4),(1,-4),(2,-9),(2,-9),(2,-9),(2,-9),
             (2,-9),(1,-6),(1,-6),(1,-6),(1,-6),(1,-8),(1,-8),(1,-8),(1,-8),
             (1,-9),(1,-9),(1,-9),(1,-9),(0,-1),(0,-1),(0,-1),(0,-1),(0,-1),
-            (0,-1),(0,-1),(0,-1)]
+            (0,-1),(0,-1),(0,-1),(0,-1)]
 
     def beam_range_finder_model(self, z_t1_arr, x_t1):
         """
@@ -72,23 +72,29 @@ class SensorModel:
         param[in] x_t1 : particle state belief [x, y, theta] at time t [world_frame]
         param[out] prob_zt1 : likelihood of a range scan zt1 at time t
         """
-
+        print "x_t1: ", x_t1
         z_t1_prior = self.trace_rays(x_t1)
+        print "z_t1_prior: ", z_t1_prior
+        normal_tot = 0
+        random_tot = 0
+        failure_tot = 0
+        short_tot = 0
         for i in xrange(0,180,self.step_size):
             if (z_t1_arr[i] < self.z_max):
             # normal dist
-                norm_exp = -0.5 * np.pow(z_t1_arr[i] - z_t1_prior[i/5],2) / np.pow(self.sig_norm,2)
-                normal = (1/np.sqrt(2*np.pi()*np.pow(self.sig_norm,2)))*np.exp(norm_exp)
-                normal = normal * self.z_hit
+                # norm_exp_num = 
+                norm_exp = -0.5 * pow((z_t1_arr[i] - z_t1_prior[i/5]),2) / pow(self.sig_norm,2)
+                normal = (1/np.sqrt(2*np.pi*pow(self.sig_norm,2)))*np.exp(norm_exp)
+                # normal = normal * self.z_hit
             #random dist
-                random = 1/self.z_max * self.z_rand
+                random = 1/self.z_max # * self.z_rand
             else:
                 random = 0
                 normal = 0
             # short dist
             if (z_t1_arr[i] <= z_t1_prior[i/5]):
-                short = 1 - exp(-self.lambda_short*z_t1_prior[i/5])
-                short = short * self.z_short
+                short = 1 - np.exp(-self.lambda_short*z_t1_prior[i/5])
+                # short = short * self.z_short
             else:
                 short = 0
             # failure dist
@@ -96,18 +102,22 @@ class SensorModel:
                 failure = 1
             else:
                 failure = 0
+            normal_tot += normal
+            short_tot += short
+            random_tot += random
+            failure_tot += failure
 
-        q = normal + random + short + failure
+        q = normal_tot + random_tot + short_tot + failure_tot
         # print "z_t1_arr = ", z_t1_arr
         # print "z_t1_prior = ", z_t1_prior
-        
+        print "q = ", q
         return q
 
     def trace_rays(self, x_t1):
         dist_priors = list()
-        theta_curr = round(x_t1[2] - 1.57,2)
-        x_curr = int(x_t1[0]/10)
-        y_curr = int(x_t1[1]/10)
+        theta_curr = round(x_t1[0,2] - 1.57,2)
+        x_curr = int(x_t1[0,0]/10)
+        y_curr = int(x_t1[0,1]/10)
         z_t1_prior = list()
         for i in xrange(0,180,5):
             theta_curr = theta_curr + self.theta_inc
@@ -136,14 +146,14 @@ class SensorModel:
             sign_y = y_step/abs(y_step)
         x_step = x_step * sign_x
         y_step = y_step * sign_y
-        while self.occupancy_map[y_curr][x_curr] < 0.15:
+        while self.occupancy_map[y_curr][x_curr] < 0.05:
             for i in range(x_step):
                 x_curr = x_curr + sign_x
-                if self.occupancy_map[y_curr][x_curr] > 0.15:
+                if self.occupancy_map[y_curr][x_curr] > 0.05:
                     return y_curr, x_curr
             for i in range(y_step):
                 y_curr = y_curr + sign_y
-                if self.occupancy_map[y_curr][x_curr] > 0.15:
+                if self.occupancy_map[y_curr][x_curr] > 0.05:
                     return y_curr, x_curr
         return y_curr, x_curr
  
