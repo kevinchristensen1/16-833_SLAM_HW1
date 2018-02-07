@@ -29,7 +29,7 @@ class Resampling:
         r = np.random.uniform(0, 1.0/M)
         c = X_bar[0,3]
         i = 0
-        X_bar_resampled = np.zeros((M, 5))
+        X_bar_resampled = np.zeros((M, 4))
 
         for m in range(0,M):
             u = r + m * 1.0/M

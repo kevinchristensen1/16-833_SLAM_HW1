@@ -20,6 +20,7 @@ class SensorModel:
         TODO : Initialize Sensor Model parameters here
         """
         self.occupancy_map = occupancy_map
+        self.step_size = 5
         self.theta_inc = round(3.14/36,2)
         self.slope_table = [(0,1),(0,1),(0,1),(0,1),(0,1),(0,1),(0,1),(0,1),
             (1,9),(1,9),(1,9),(1,9),(1,8),(1,8),(1,8),(1,8),(1,6),(1,6),
@@ -64,7 +65,30 @@ class SensorModel:
         """
 
         z_t1_prior = self.trace_rays(x_t1)
-        q = x_t1
+        for i in xrange(0,180,self.step_size):
+            if (z_t1_arr[i] < self.z_max):
+            # normal dist
+                norm_exp = -0.5 * np.pow(z_t1_arr[i] - z_t1_prior[i/5],2) / np.pow(self.sig_norm,2)
+                normal = (1/np.sqrt(2*np.pi()*np.pow(self.sig_norm,2)))*np.exp(norm_exp)
+                normal = normal * self.z_hit
+            #random dist
+                random = 1/self.z_max * self.z_rand
+            else:
+                random = 0
+                normal = 0
+            # short dist
+            if (z_t1_arr[i] <= z_t1_prior[i/5]):
+                short = 1 - exp(-lambda_short*z_t1_prior[i/5])
+                short = short * z_short
+            else:
+                short = 0
+            # failure dist
+            if (z_t1_arr[i] >= self.z_max):
+                failure = 1
+            else:
+                failure = 0
+
+        q = normal + random + short + failure
         # print "z_t1_arr = ", z_t1_arr
         # print "z_t1_prior = ", z_t1_prior
         
