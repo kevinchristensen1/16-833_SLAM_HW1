@@ -20,7 +20,16 @@ class SensorModel:
         TODO : Initialize Sensor Model parameters here
         """
         self.occupancy_map = occupancy_map
+        
         self.step_size = 5
+        
+        self.sig_norm
+        self.lambda_short
+        self.z_hit = 0.5
+        self.z_rand = 0.25
+        self.z_max = 80
+        self.z_short = 0.25
+        
         self.theta_inc = round(3.14/36,2)
         self.slope_table = [(0,1),(0,1),(0,1),(0,1),(0,1),(0,1),(0,1),(0,1),
             (1,9),(1,9),(1,9),(1,9),(1,8),(1,8),(1,8),(1,8),(1,6),(1,6),
@@ -78,8 +87,8 @@ class SensorModel:
                 normal = 0
             # short dist
             if (z_t1_arr[i] <= z_t1_prior[i/5]):
-                short = 1 - exp(-lambda_short*z_t1_prior[i/5])
-                short = short * z_short
+                short = 1 - exp(-self.lambda_short*z_t1_prior[i/5])
+                short = short * self.z_short
             else:
                 short = 0
             # failure dist
