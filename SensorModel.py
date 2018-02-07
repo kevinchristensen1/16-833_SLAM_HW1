@@ -23,11 +23,11 @@ class SensorModel:
         
         self.step_size = 5
         
-        self.sig_norm = 0.5
-        self.lambda_short = 0.5
+        self.sig_norm = 100
+        self.lambda_short = 100
         self.z_hit = 0.5
         self.z_rand = 0.25
-        self.z_max = 80
+        self.z_max = 800
         self.z_short = 0.25
         
         self.theta_inc = round(3.14/36,2)
@@ -72,8 +72,9 @@ class SensorModel:
         param[in] x_t1 : particle state belief [x, y, theta] at time t [world_frame]
         param[out] prob_zt1 : likelihood of a range scan zt1 at time t
         """
-        print "x_t1: ", x_t1
+        # print "x_t1: ", x_t1
         z_t1_prior = self.trace_rays(x_t1)
+        print "z_t1_arr: ", z_t1_arr
         print "z_t1_prior: ", z_t1_prior
         normal_tot = 0
         random_tot = 0
@@ -110,7 +111,7 @@ class SensorModel:
         q = normal_tot + random_tot + short_tot + failure_tot
         # print "z_t1_arr = ", z_t1_arr
         # print "z_t1_prior = ", z_t1_prior
-        print "q = ", q
+        # print "q = ", q
         return q
 
     def trace_rays(self, x_t1):
@@ -135,7 +136,8 @@ class SensorModel:
                 y_step *= -1
 
             y_wall, x_wall = self.trace_ray(x_step, y_step, x_curr, y_curr)
-            z_t1_prior.append(np.sqrt(pow(y_wall - y_curr,2) + pow(x_wall-x_curr,2)))
+
+            z_t1_prior.append(np.sqrt(pow((y_wall - y_curr)*10,2) + pow((x_wall-x_curr)*10,2)))
         return z_t1_prior
 
     def trace_ray(self, x_step, y_step, x_curr, y_curr):
@@ -146,14 +148,14 @@ class SensorModel:
             sign_y = y_step/abs(y_step)
         x_step = x_step * sign_x
         y_step = y_step * sign_y
-        while self.occupancy_map[y_curr][x_curr] < 0.05:
+        while y_curr < 800 and x_curr < 800 and self.occupancy_map[y_curr][x_curr] < 0.05:
             for i in range(x_step):
                 x_curr = x_curr + sign_x
-                if self.occupancy_map[y_curr][x_curr] > 0.05:
+                if x_curr < 0 or x_curr >= 800 or self.occupancy_map[y_curr][x_curr] > 0.05:
                     return y_curr, x_curr
             for i in range(y_step):
                 y_curr = y_curr + sign_y
-                if self.occupancy_map[y_curr][x_curr] > 0.05:
+                if y_curr < 0 or y_curr >= 800 or self.occupancy_map[y_curr][x_curr] > 0.05:
                     return y_curr, x_curr
         return y_curr, x_curr
  

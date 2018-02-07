@@ -26,7 +26,9 @@ class Resampling:
         """
         # pdb.set_trace()
         M = X_bar.shape[0]
+        # print "\n\n\n\n\n\nX_bar = ", X_bar
         r = np.random.uniform(0, 1.0/M)
+        # print "r = ", r
         c = X_bar[0,3]
         i = 0
         X_bar_resampled = np.zeros((M, 4))
@@ -58,7 +60,7 @@ def test():
 
     # pdb.set_trace()
 
-    print(X_bar_resampled)
+    # print(X_bar_resampled)
 
 if __name__ == "__main__":
     test()

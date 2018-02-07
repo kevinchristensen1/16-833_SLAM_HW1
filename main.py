@@ -97,7 +97,7 @@ def main():
     sensor_model = SensorModel(occupancy_map)
     resampler = Resampling()
 
-    num_particles = 1
+    num_particles = 500
     X_bar = init_particles_freespace(num_particles, occupancy_map)
 
     vis_flag = 1
@@ -141,7 +141,7 @@ def main():
 
         X_bar_new = np.zeros( (num_particles,4), dtype=np.float64)
         u_t1 = odometry_robot
-    
+        # print "num_particles: ", num_particles
         for m in range(0, num_particles):
             """
             MOTION MODEL
@@ -149,7 +149,7 @@ def main():
             
             x_t0 = X_bar[m, 0:3]
             x_t1 = motion_model.update(u_t0, u_t1, x_t0)
-            print x_t1
+            # print x_t1
             
             # ---------------------------------------------------
             # For testing Motion Model 
@@ -164,18 +164,21 @@ def main():
                 z_t = ranges
                 w_t = sensor_model.beam_range_finder_model(z_t, x_t1)
                 # w_t = 1/num_particles
+                # print "w_t = ", w_t
                 X_bar_new[m,:] = np.hstack((x_t1, [[w_t]]))
             else:
                 X_bar_new[m,:] = np.hstack((x_t1, [[X_bar[m,3]]]))
 
         X_bar = X_bar_new
+        # print "X_bar = ", X_bar
         u_t0 = u_t1
+        X_bar[:,3] = X_bar[:,3]/sum(X_bar[:,3])
 
         """
         RESAMPLING
         """
         X_bar = resampler.low_variance_sampler(X_bar)
-        
+        # print "\n\n\n\n\n\nX_bar = ", X_bar
         if vis_flag:
             visualize_timestep(X_bar, time_idx)
 
