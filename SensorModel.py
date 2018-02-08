@@ -23,12 +23,13 @@ class SensorModel:
         
         self.step_size = 5
         
-        self.sig_norm = 100
-        self.lambda_short = 100
-        self.z_hit = 0.5
-        self.z_rand = 0.25
+        self.sig_norm = 150
+        self.lambda_short = 0.01
+        self.z_hit = 0.7
+        self.z_rand = 0.098
         self.z_max = 800
-        self.z_short = 0.25
+        self.z_max_mult = 0.002
+        self.z_short = 0.2
         
         self.theta_inc = round(3.14/36,2)
         self.slope_table = [(0,1),(0,1),(0,1),(0,1),(0,1),(0,1),(0,1),(0,1),
@@ -74,8 +75,8 @@ class SensorModel:
         """
         # print "x_t1: ", x_t1
         z_t1_prior = self.trace_rays(x_t1)
-        print "z_t1_arr: ", z_t1_arr
-        print "z_t1_prior: ", z_t1_prior
+        # print "z_t1_arr: ", z_t1_arr
+        # print "z_t1_prior: ", z_t1_prior
         normal_tot = 0
         random_tot = 0
         failure_tot = 0
@@ -94,7 +95,7 @@ class SensorModel:
                 normal = 0
             # short dist
             if (z_t1_arr[i] <= z_t1_prior[i/5]):
-                short = 1 - np.exp(-self.lambda_short*z_t1_prior[i/5])
+                short = (1/(1 - np.exp(-self.lambda_short*z_t1_prior[i/5])))*self.lambda_short*np.exp(-self.lambda_short*z_t1_arr[i])
                 # short = short * self.z_short
             else:
                 short = 0
@@ -108,7 +109,7 @@ class SensorModel:
             random_tot += random
             failure_tot += failure
 
-        q = normal_tot + random_tot + short_tot + failure_tot
+        q = normal_tot*self.z_hit + random_tot*self.z_rand + short_tot*self.z_short + failure_tot*self.z_max_mult
         # print "z_t1_arr = ", z_t1_arr
         # print "z_t1_prior = ", z_t1_prior
         # print "q = ", q
@@ -117,6 +118,10 @@ class SensorModel:
     def trace_rays(self, x_t1):
         dist_priors = list()
         theta_curr = round(x_t1[0,2] - 1.57,2)
+        while (theta_curr > 3.14):
+            theta_curr -= 6.28
+        while (theta_curr < -3.14):
+            theta_curr += 6.28
         x_curr = int(x_t1[0,0]/10)
         y_curr = int(x_t1[0,1]/10)
         z_t1_prior = list()
@@ -131,6 +136,7 @@ class SensorModel:
                 x_step, y_step = self.slope_table[int(theta_curr*100)]
                 
             else:# theta_curr >= -3.14 and theta_curr < 0:
+                # print "theta_curr: ", theta_curr
                 x_step, y_step = self.slope_table[int((theta_curr+3.14)*100)]
                 x_step *= -1
                 y_step *= -1
