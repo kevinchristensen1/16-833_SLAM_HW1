@@ -147,7 +147,7 @@ def main():
             
             x_t0 = X_bar[m, 0:3]
             x_t1 = motion_model.update(u_t0, u_t1, x_t0)
-
+                
             # ---------------------------------------------------
             # For testing Motion Model 
             # X_bar_new[m,:] = np.hstack((x_t1, w_t))
@@ -159,7 +159,8 @@ def main():
 
             if (meas_type == "L"):
                 z_t = ranges
-                w_t = sensor_model.beam_range_finder_model(z_t, x_t1)
+                x_l1 = motion_model.laser_position(odometry_laser, u_t1, x_t1)
+                w_t = sensor_model.beam_range_finder_model(z_t, x_l1)
                 X_bar_new[m,:] = np.hstack((x_t1, [[w_t]]))
             else:
                 X_bar_new[m,:] = np.hstack((x_t1, [[X_bar[m,3]]]))
@@ -167,40 +168,6 @@ def main():
         X_bar = X_bar_new
         u_t0 = u_t1
         X_bar[:,3] = X_bar[:,3]/sum(X_bar[:,3])
-# =======
-#         # if ((time_stamp <= 0.0) | (meas_type == "O")): # ignore pure odometry measurements for now (faster debugging) 
-#             # continue
-
-#         if (meas_type == "L"):
-#              odometry_laser = meas_vals[3:6] # [x, y, theta] coordinates of laser in odometry frame
-#              ranges = meas_vals[6:-1] # 180 range measurement values from single laser scan
-        
-#         print "Processing time step " + str(time_idx) + " at time " + str(time_stamp) + "s"
-
-#         if (first_time_idx):
-#             u_t0 = odometry_robot
-#             first_time_idx = False
-#             continue
-
-#         X_bar_new = np.zeros( (num_particles,4), dtype=np.float64)
-#         u_t1 = odometry_robot
-#         # print "num_particles: ", num_particles
-#         for m in range(0, num_particles):
-#             """
-#             MOTION MODEL
-#             """
-            
-#             x_t0 = X_bar[m, 0:3]
-#             x_t1 = motion_model.update(u_t0, u_t1, x_t0)
-   
-            
-#             # ---------------------------------------------------
-#             # For testing Motion Model 
-           
-#             #X_bar_new[m,:] = np.hstack(x_t1, w_t[0][m])
-#             # print x_t1
-#             # ---------------------------------------------------
-# >>>>>>> df04d9b4ac67b05bf6c5de8943b157f726ad2ca3
 
         """
         RESAMPLING
