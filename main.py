@@ -97,14 +97,14 @@ def main():
     sensor_model = SensorModel(occupancy_map)
     resampler = Resampling()
 
-    num_particles = 1
+    num_particles = 500
     X_bar = init_particles_freespace(num_particles, occupancy_map)
 
     vis_flag = 1
     
     # ---------------------------------------------------
     # Weights are dummy weights for testing motion model
-    w0_vals = np.ones( (num_particles,1), dtype=np.float64)
+    w0_vals = np.ones( (1,num_particles), dtype=np.float64)
     w_t = w0_vals / num_particles
     #----------------------------------------------------
     
@@ -149,11 +149,12 @@ def main():
             
             x_t0 = X_bar[m, 0:3]
             x_t1 = motion_model.update(u_t0, u_t1, x_t0)
-            print x_t1
+   
             
             # ---------------------------------------------------
             # For testing Motion Model 
-            X_bar_new[m,:] = np.hstack((x_t1, w_t))
+           
+            X_bar_new[m,:] = np.append(x_t1, w_t[0][m])
             # ---------------------------------------------------
             
             """

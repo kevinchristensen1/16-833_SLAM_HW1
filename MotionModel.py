@@ -66,11 +66,9 @@ class MotionModel:
         # ---------------------------------------------------
         # Theta must be ~ [-pi,pi]
         if x_t1[0,2] < -math.pi:
-            temp = abs(x_t1[0,2] + math.pi)
-            x_t1[0,2] = math.pi - temp
+            x_t1[0,2] = 2*math.pi + x_t1[0,2]
         elif x_t1[0,2] > math.pi:
-            temp = abs(x_t1[0,2] - math.pi)
-            x_t1[0,2] = -math.pi + temp 
+            x_t1[0,2] = x_t1[0,2] - 2*math.pi 
         
         return x_t1
 
