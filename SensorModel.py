@@ -32,7 +32,7 @@ class SensorModel:
         self.z_max_mult = 0.002
         self.z_short = 0.2
         
-        self.xy_step = 5;
+        self.xy_step = 3;
         
         self.theta_inc = round(math.pi/36,2)
         self.slope_table = [(0,1),(0,1),(0,1),(0,1),(0,1),(0,1),(0,1),(0,1),
@@ -156,8 +156,8 @@ class SensorModel:
             x_step = self.xy_step*math.cos(theta_curr)
 
             y_wall, x_wall = self.trace_ray(x_step, y_step, x_curr, y_curr)
-
-            z_t1_prior.append(np.sqrt(pow((y_wall - y_curr)*10,2) + pow((x_wall-x_curr)*10,2)))
+            z_curr = np.sqrt(pow((y_wall - y_curr)*10,2) + pow((x_wall-x_curr)*10,2))
+            z_t1_prior.append(z_curr)
             #print np.sqrt(pow((y_wall - y_curr)*10,2) + pow((x_wall-x_curr)*10,2))
         return z_t1_prior
 
@@ -167,19 +167,19 @@ class SensorModel:
         y_og = y_curr
         xp = int(round(x_curr,0))
         yp = int(round(y_curr,0))
-        while y_curr < 800 and y_curr > 0 and x_curr < 700 and x_curr > 300 and self.occupancy_map[yp][xp] < 0.2 :
+        while y_curr < 800 and y_curr > 0 and x_curr < 700 and x_curr > 300 and self.occupancy_map[yp][xp] < 0.05 :
             x_curr = x_curr + x_step
             y_curr = y_curr + y_step
             xp = int(round(x_curr,0))
             yp = int(round(y_curr,0))
             #print xp
             #print yp
-            if xp < 300 or xp >= 699 or self.occupancy_map[yp][xp] > 0.2 or self.occupancy_map[yp][xp] < 0:
+            if xp < 300 or xp > 699 or self.occupancy_map[yp][xp] >= 0.1 or self.occupancy_map[yp][xp] < 0:
                 #plt.plot([x_og,x_curr],[y_og,y_curr],'b')
                 #plt.pause(0.000001)
                     
                 return yp, xp
-            if yp < 0 or yp >= 799 or self.occupancy_map[yp][xp] > 0.2 or self.occupancy_map[yp][xp] < 0:
+            if yp < 0 or yp >= 799 or self.occupancy_map[yp][xp] >= 0.1 or self.occupancy_map[yp][xp] < 0:
                 #plt.plot([x_og,x_curr],[y_og,y_curr],'b')
                 #plt.pause(0.000001)
                     

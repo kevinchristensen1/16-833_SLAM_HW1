@@ -21,7 +21,7 @@ def visualize_map(occupancy_map):
 def visualize_timestep(X_bar, tstep):
     x_locs = X_bar[:,0]/10.0
     y_locs = X_bar[:,1]/10.0
-    scat = plt.scatter(x_locs, y_locs, c='r', marker='o')
+    scat = plt.scatter(x_locs, y_locs, c='r', marker='o', s=1)
     plt.pause(0.00001)
     scat.remove()
 
@@ -113,14 +113,14 @@ def main():
     sensor_model = SensorModel(occupancy_map)
     resampler = Resampling()
 
-    num_particles = 250
+    num_particles = 1000
     
     # ---------------------------------------------------
     # Create intial set of particles
     X_bar = init_particles_freespace(num_particles, occupancy_map)
     
     # Useful for debugging, places particles near correct starting area for log1
-    # X_bar = init_debug(num_particles)
+    #X_bar = init_debug(num_particles)
     # ---------------------------------------------------
     
     vis_flag = 1
@@ -148,8 +148,8 @@ def main():
         # print "odometry_robot = ", odometry_robot
         time_stamp = meas_vals[-1]
 
-        if ((time_stamp <= 0.0) | (meas_type == "O")): # ignore pure odometry measurements for now (faster debugging) 
-            continue
+        #if ((time_stamp <= 0.0) | (meas_type == "O")): # ignore pure odometry measurements for now (faster debugging) 
+            #continue
 
         if (meas_type == "L"):
              odometry_laser = meas_vals[3:6] # [x, y, theta] coordinates of laser in odometry frame
@@ -198,7 +198,7 @@ def main():
         RESAMPLING
         """
         #if X_bar[:,3].var() > 1e-8:
-        if time_idx > 35:
+        if time_idx > 50 and time_idx % 8 ==0:
             X_bar = resampler.low_variance_sampler(X_bar)
         
         #print X_bar[:,3].var()
