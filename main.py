@@ -149,22 +149,15 @@ def main():
             
             x_t0 = X_bar[m, 0:3]
             x_t1 = motion_model.update(u_t0, u_t1, x_t0)
-<<<<<<< HEAD
    
             
             # ---------------------------------------------------
             # For testing Motion Model 
            
-            X_bar_new[m,:] = np.append(x_t1, w_t[0][m])
-=======
+            #X_bar_new[m,:] = np.hstack(x_t1, w_t[0][m])
             # print x_t1
-            
             # ---------------------------------------------------
-            # For testing Motion Model 
-            # X_bar_new[m,:] = np.hstack((x_t1, w_t))
->>>>>>> 17cb0e4ff838f747c973c955bf4248502cf1ab9e
-            # ---------------------------------------------------
-            
+
             """
             SENSOR MODEL
             """
