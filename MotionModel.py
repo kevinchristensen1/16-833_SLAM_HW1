@@ -72,5 +72,14 @@ class MotionModel:
         
         return x_t1
 
+    def laser_position(self, odometry_laser, u_t1, x_t1):
+        xshape = 3
+        x_l1 = np.empty([1,xshape])
+        x_l1[0,0] = x_t1[0,0] + odometry_laser[0] - u_t1[0]
+        x_l1[0,1] = x_t1[0,1] + odometry_laser[1] - u_t1[1]
+        x_l1[0,2] = x_t1[0,2]
+        
+        return x_l1
+
 if __name__=="__main__":
     pass
