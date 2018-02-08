@@ -60,7 +60,7 @@ def init_particles_freespace(num_particles, occupancy_map):
         y0_vals[i] = np.random.uniform( 0, 7000)
         x0_vals[i] = np.random.uniform( 3000, 7000)
         # If the particles are not in the hallways, generate new values until they are.
-        while occupancy_map[int(y0_vals[i]/10)][int(x0_vals[i]/10)] < 0 or occupancy_map[int(y0_vals[i]/10)][int(x0_vals[i]/10)]> 0.05:
+        while occupancy_map[int(y0_vals[i]/10)][int(x0_vals[i]/10)] < 0 or occupancy_map[int(y0_vals[i]/10)][int(x0_vals[i]/10)]> 0:
             
             y0_vals[i] = np.random.uniform( 0, 7000)
             x0_vals[i] = np.random.uniform( 3000, 7000)
@@ -71,8 +71,24 @@ def init_particles_freespace(num_particles, occupancy_map):
     
     return X_bar_init
 
+def init_debug(num_particles):
+    # Initializes empty np arrays
+    y0_vals = np.empty([num_particles,1])
+    x0_vals = np.empty([num_particles,1])
+    # Intializes all angles theta
+    theta0_vals = np.random.uniform( 3.05, 3.14, (num_particles, 1) )
+
+    for i in range(0,num_particles):
+        # Creates x0 and y0 doubles
+        y0_vals[i] = np.random.uniform( 3900, 4050)
+        x0_vals[i] = np.random.uniform( 4000, 4300)
+            
+    w0_vals = np.ones( (num_particles,1), dtype=np.float64)
+    w0_vals = w0_vals / num_particles
+    X_bar_init = np.hstack((x0_vals,y0_vals,theta0_vals,w0_vals))
+    return X_bar_init
+
 def main():
-    
     """
     Description of variables used
     u_t0 : particle state odometry reading [x, y, theta] at time (t-1) [odometry_frame]   
@@ -97,9 +113,16 @@ def main():
     sensor_model = SensorModel(occupancy_map)
     resampler = Resampling()
 
-    num_particles = 500
+    num_particles = 250
+    
+    # ---------------------------------------------------
+    # Create intial set of particles
     X_bar = init_particles_freespace(num_particles, occupancy_map)
-
+    
+    # Useful for debugging, places particles near correct starting area for log1
+    # X_bar = init_debug(num_particles)
+    # ---------------------------------------------------
+    
     vis_flag = 1
     
     # ---------------------------------------------------
@@ -116,6 +139,7 @@ def main():
 
     first_time_idx = True
     for time_idx, line in enumerate(logfile):
+
         # Read a single 'line' from the log file (can be either odometry or laser measurement)
         meas_type = line[0] # L : laser scan measurement, O : odometry measurement
         meas_vals = np.fromstring(line[2:], dtype=np.float64, sep=' ') # convert measurement values from string to double
@@ -124,8 +148,8 @@ def main():
         # print "odometry_robot = ", odometry_robot
         time_stamp = meas_vals[-1]
 
-        # if ((time_stamp <= 0.0) | (meas_type == "O")): # ignore pure odometry measurements for now (faster debugging) 
-            # continue
+        if ((time_stamp <= 0.0) | (meas_type == "O")): # ignore pure odometry measurements for now (faster debugging) 
+            continue
 
         if (meas_type == "L"):
              odometry_laser = meas_vals[3:6] # [x, y, theta] coordinates of laser in odometry frame
@@ -162,17 +186,23 @@ def main():
                 x_l1 = motion_model.laser_position(odometry_laser, u_t1, x_t1)
                 w_t = sensor_model.beam_range_finder_model(z_t, x_l1)
                 X_bar_new[m,:] = np.hstack((x_t1, [[w_t]]))
+                #time.sleep(10)
             else:
                 X_bar_new[m,:] = np.hstack((x_t1, [[X_bar[m,3]]]))
 
         X_bar = X_bar_new
         u_t0 = u_t1
         X_bar[:,3] = X_bar[:,3]/sum(X_bar[:,3])
-
+        # print X_bar[:,3]
         """
         RESAMPLING
         """
-        X_bar = resampler.low_variance_sampler(X_bar)
+        #if X_bar[:,3].var() > 1e-8:
+        if time_idx > 35:
+            X_bar = resampler.low_variance_sampler(X_bar)
+        
+        #print X_bar[:,3].var()
+            
         # print "\n\n\n\n\n\nX_bar = ", X_bar
         if vis_flag:
             visualize_timestep(X_bar, time_idx)

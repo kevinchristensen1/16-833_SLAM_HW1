@@ -20,7 +20,7 @@ class MapReader:
 
     def visualize_map(self):
         fig = plt.figure()
-        # plt.switch_backend('TkAgg')
+        plt.switch_backend('TkAgg')
         mng = plt.get_current_fig_manager(); mng.resize(*mng.window.maxsize())
         plt.ion(); plt.imshow(self._occupancy_map, cmap='Greys'); plt.axis([0, self._size_x, 0, self._size_y]); plt.draw()
         plt.pause(100)

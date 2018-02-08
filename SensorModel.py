@@ -22,14 +22,17 @@ class SensorModel:
         self.occupancy_map = occupancy_map
         
         self.step_size = 5
+        self.z_max = 8180
         
-        self.sig_norm = 150
+        self.sig_norm = 250
         self.lambda_short = 0.01
         self.z_hit = 0.7
         self.z_rand = 0.098
-        self.z_max = 8180
+        
         self.z_max_mult = 0.002
         self.z_short = 0.2
+        
+        self.xy_step = 5;
         
         self.theta_inc = round(math.pi/36,2)
         self.slope_table = [(0,1),(0,1),(0,1),(0,1),(0,1),(0,1),(0,1),(0,1),
@@ -75,18 +78,21 @@ class SensorModel:
         """
         # print "x_t1: ", x_t1
         z_t1_prior = self.trace_rays(x_t1)
-        # print "z_t1_arr: ", z_t1_arr
-        # print "z_t1_prior: ", z_t1_prior
+        #print "z_t1_arr: ", z_t1_arr
+        #print "z_t1_prior: ", z_t1_prior
         normal_tot = 0
         random_tot = 0
         failure_tot = 0
         short_tot = 0
+       
+        q = 0
         for i in xrange(0,180,self.step_size):
             #   Case 1: Correct range with local measurement noise = Gaussian Distribution
             # & Case 4: Random Measurements = Uniform Distribution
             # 
             if (z_t1_arr[i] < self.z_max):
             # Gaussian Distribution
+                #print z_t1_arr[i] - z_t1_prior[i/self.step_size]
                 norm_exp = -0.5 * pow((z_t1_arr[i] - z_t1_prior[i/self.step_size]),2) / pow(self.sig_norm,2)
                 normal = (1/np.sqrt(2*np.pi*pow(self.sig_norm,2)))*np.exp(norm_exp)
                 # normal = normal * self.z_hit
@@ -107,67 +113,82 @@ class SensorModel:
                 failure = 1
             else:
                 failure = 0
-            normal_tot += normal
-            short_tot += short
-            random_tot += random
-            failure_tot += failure
-
-        q = normal_tot*self.z_hit + random_tot*self.z_rand + short_tot*self.z_short + failure_tot*self.z_max_mult
+            p_hit = normal*self.z_hit
+            p_rand = random*self.z_rand
+            p_zshort = short*self.z_short
+            p_fail = failure*self.z_max_mult
+            p_tot = p_hit + p_rand + p_zshort + p_fail
+            # print "p_hit", p_hit
+            # print "p_rand", p_rand
+            # print "p_zshort", p_zshort
+            # print "p_fail", p_fail
+            # print "p_tot" , p_tot
+            
+            # multiply probabilties together = add log of probabilities for numerical stability
+            if p_tot > 0:
+                q = q + math.log(p_tot)
+            else:
+                return 0
+            #print normal*self.z_hit
+        
+        q = math.exp(q)
+        
         # print "z_t1_arr = ", z_t1_arr
         # print "z_t1_prior = ", z_t1_prior
-        # print "q = ", q
+        #print q
         return q
 
     def trace_rays(self, x_t1):
-        dist_priors = list()
-        theta_curr = round(x_t1[0,2] - math.pi/2,2)
-        while (theta_curr > math.pi):
-            theta_curr -= 2*math.pi
-        while (theta_curr < -math.pi):
-            theta_curr += 2*math.pi
-        x_curr = int(x_t1[0,0]/10)
-        y_curr = int(x_t1[0,1]/10)
+        #dist_priors = list()
+        theta_curr = x_t1[0,2] - math.pi/2
+
+        x_curr = int(round(x_t1[0,0]/10,0))
+        y_curr = int(round(x_t1[0,1]/10,0))
         z_t1_prior = list()
         for i in xrange(0,180,5):
             theta_curr = theta_curr + self.theta_inc
-            if theta_curr > 3.14:
+            if theta_curr > math.pi:
                 theta_curr = theta_curr - 2*math.pi
-            elif theta_curr < -3.14:
+            elif theta_curr < -math.pi:
                 theta_curr = theta_curr + 2*math.pi
 
-            if theta_curr >= 0 and theta_curr <= math.pi:
-                x_step, y_step = self.slope_table[int(theta_curr*100)]
-                
-            else:# theta_curr >= -3.14 and theta_curr < 0:
-                # print "theta_curr: ", theta_curr
-                x_step, y_step = self.slope_table[int(theta_curr+math.pi*100)]
-                x_step *= -1
-                y_step *= -1
+            y_step = self.xy_step*math.sin(theta_curr)
+            x_step = self.xy_step*math.cos(theta_curr)
 
             y_wall, x_wall = self.trace_ray(x_step, y_step, x_curr, y_curr)
 
             z_t1_prior.append(np.sqrt(pow((y_wall - y_curr)*10,2) + pow((x_wall-x_curr)*10,2)))
-            
+            #print np.sqrt(pow((y_wall - y_curr)*10,2) + pow((x_wall-x_curr)*10,2))
         return z_t1_prior
 
     def trace_ray(self, x_step, y_step, x_curr, y_curr):
-        sign_x = sign_y = 0
-        if x_step != 0:
-            sign_x = x_step/abs(x_step)
-        if y_step != 0:
-            sign_y = y_step/abs(y_step)
-        x_step = x_step * sign_x
-        y_step = y_step * sign_y
-        while y_curr < 800 and x_curr < 800 and self.occupancy_map[y_curr][x_curr] < 0.05:
-            for i in range(x_step):
-                x_curr = x_curr + sign_x
-                if x_curr < 0 or x_curr >= 800 or self.occupancy_map[y_curr][x_curr] > 0.05:
-                    return y_curr, x_curr
-            for i in range(y_step):
-                y_curr = y_curr + sign_y
-                if y_curr < 0 or y_curr >= 800 or self.occupancy_map[y_curr][x_curr] > 0.05:
-                    return y_curr, x_curr
-        return y_curr, x_curr
+
+        x_og = x_curr
+        y_og = y_curr
+        xp = int(round(x_curr,0))
+        yp = int(round(y_curr,0))
+        while y_curr < 800 and y_curr > 0 and x_curr < 700 and x_curr > 300 and self.occupancy_map[yp][xp] < 0.2 :
+            x_curr = x_curr + x_step
+            y_curr = y_curr + y_step
+            xp = int(round(x_curr,0))
+            yp = int(round(y_curr,0))
+            #print xp
+            #print yp
+            if xp < 300 or xp >= 699 or self.occupancy_map[yp][xp] > 0.2 or self.occupancy_map[yp][xp] < 0:
+                #plt.plot([x_og,x_curr],[y_og,y_curr],'b')
+                #plt.pause(0.000001)
+                    
+                return yp, xp
+            if yp < 0 or yp >= 799 or self.occupancy_map[yp][xp] > 0.2 or self.occupancy_map[yp][xp] < 0:
+                #plt.plot([x_og,x_curr],[y_og,y_curr],'b')
+                #plt.pause(0.000001)
+                    
+                return yp, xp
+            if (y_curr - y_og)**2 + (x_curr - x_og)**2 > self.z_max**2:
+            
+                return yp, xp
+                
+        return yp, xp
  
 if __name__=='__main__':
     pass
