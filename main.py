@@ -104,7 +104,7 @@ def main():
     
     # ---------------------------------------------------
     # Weights are dummy weights for testing motion model
-    w0_vals = np.ones( (num_particles,1), dtype=np.float64)
+    w0_vals = np.ones( (1,num_particles), dtype=np.float64)
     w_t = w0_vals / num_particles
     #----------------------------------------------------
     
@@ -116,75 +116,99 @@ def main():
 
     first_time_idx = True
     for time_idx, line in enumerate(logfile):
-        if time_idx > 80:
-            # Read a single 'line' from the log file (can be either odometry or laser measurement)
-            meas_type = line[0] # L : laser scan measurement, O : odometry measurement
-            meas_vals = np.fromstring(line[2:], dtype=np.float64, sep=' ') # convert measurement values from string to double
+        # Read a single 'line' from the log file (can be either odometry or laser measurement)
+        meas_type = line[0] # L : laser scan measurement, O : odometry measurement
+        meas_vals = np.fromstring(line[2:], dtype=np.float64, sep=' ') # convert measurement values from string to double
 
-            odometry_robot = meas_vals[0:3] # odometry reading [x, y, theta] in odometry frame
-            # print "odometry_robot = ", odometry_robot
-            time_stamp = meas_vals[-1]
+        odometry_robot = meas_vals[0:3] # odometry reading [x, y, theta] in odometry frame
+        # print "odometry_robot = ", odometry_robot
+        time_stamp = meas_vals[-1]
 
-            # if ((time_stamp <= 0.0) | (meas_type == "O")): # ignore pure odometry measurements for now (faster debugging) 
-                # continue
+        # if ((time_stamp <= 0.0) | (meas_type == "O")): # ignore pure odometry measurements for now (faster debugging) 
+            # continue
+
+        if (meas_type == "L"):
+             odometry_laser = meas_vals[3:6] # [x, y, theta] coordinates of laser in odometry frame
+             ranges = meas_vals[6:-1] # 180 range measurement values from single laser scan
+        
+        print "Processing time step " + str(time_idx) + " at time " + str(time_stamp) + "s"
+
+        if (first_time_idx):
+            u_t0 = odometry_robot
+            first_time_idx = False
+            continue
+
+        X_bar_new = np.zeros( (num_particles,4), dtype=np.float64)
+        u_t1 = odometry_robot
+        for m in range(0, num_particles):
+            """
+            MOTION MODEL
+            """
+            
+            x_t0 = X_bar[m, 0:3]
+            x_t1 = motion_model.update(u_t0, u_t1, x_t0)
+
+            # ---------------------------------------------------
+            # For testing Motion Model 
+            # X_bar_new[m,:] = np.hstack((x_t1, w_t))
+            # ---------------------------------------------------
+            
+            """
+            SENSOR MODEL
+            """
 
             if (meas_type == "L"):
-                 odometry_laser = meas_vals[3:6] # [x, y, theta] coordinates of laser in odometry frame
-                 ranges = meas_vals[6:-1] # 180 range measurement values from single laser scan
+                z_t = ranges
+                w_t = sensor_model.beam_range_finder_model(z_t, x_t1)
+                X_bar_new[m,:] = np.hstack((x_t1, [[w_t]]))
+            else:
+                X_bar_new[m,:] = np.hstack((x_t1, [[X_bar[m,3]]]))
+
+        X_bar = X_bar_new
+        u_t0 = u_t1
+        X_bar[:,3] = X_bar[:,3]/sum(X_bar[:,3])
+# =======
+#         # if ((time_stamp <= 0.0) | (meas_type == "O")): # ignore pure odometry measurements for now (faster debugging) 
+#             # continue
+
+#         if (meas_type == "L"):
+#              odometry_laser = meas_vals[3:6] # [x, y, theta] coordinates of laser in odometry frame
+#              ranges = meas_vals[6:-1] # 180 range measurement values from single laser scan
+        
+#         print "Processing time step " + str(time_idx) + " at time " + str(time_stamp) + "s"
+
+#         if (first_time_idx):
+#             u_t0 = odometry_robot
+#             first_time_idx = False
+#             continue
+
+#         X_bar_new = np.zeros( (num_particles,4), dtype=np.float64)
+#         u_t1 = odometry_robot
+#         # print "num_particles: ", num_particles
+#         for m in range(0, num_particles):
+#             """
+#             MOTION MODEL
+#             """
             
-            print "Processing time step " + str(time_idx) + " at time " + str(time_stamp) + "s"
+#             x_t0 = X_bar[m, 0:3]
+#             x_t1 = motion_model.update(u_t0, u_t1, x_t0)
+   
+            
+#             # ---------------------------------------------------
+#             # For testing Motion Model 
+           
+#             #X_bar_new[m,:] = np.hstack(x_t1, w_t[0][m])
+#             # print x_t1
+#             # ---------------------------------------------------
+# >>>>>>> df04d9b4ac67b05bf6c5de8943b157f726ad2ca3
 
-            if (first_time_idx):
-                u_t0 = odometry_robot
-                first_time_idx = False
-                continue
-
-            X_bar_new = np.zeros( (num_particles,4), dtype=np.float64)
-            u_t1 = odometry_robot
-            # print "z_t = ", ranges
-            for m in range(0, num_particles):
-                """
-                MOTION MODEL
-                """
-                
-                x_t0 = X_bar[m, 0:3]
-                x_t1 = motion_model.update(u_t0, u_t1, x_t0)
-                # print "u_t0: ", u_t0
-                # print "u_t1: ", u_t1
-                # print "x_t0: ", x_t0
-                # print x_t1
-                
-                # ---------------------------------------------------
-                # For testing Motion Model 
-                # X_bar_new[m,:] = np.hstack((x_t1, w_t))
-                # ---------------------------------------------------
-                
-                """
-                SENSOR MODEL
-                """
-
-                if (meas_type == "L"):
-                    z_t = ranges
-                    w_t = sensor_model.beam_range_finder_model(z_t, x_t1)
-                    # w_t = 1/num_particles
-                    # print "w_t = ", w_t
-                    X_bar_new[m,:] = np.hstack((x_t1, [[w_t]]))
-                else:
-                    X_bar_new[m,:] = np.hstack((x_t1, [[X_bar[m,3]]]))
-
-            # X_bar_new[m,:] = np.hstack((x_t1, [[X_bar[m,3]]]))
-            X_bar = X_bar_new
-            # print "X_bar = ", X_bar
-            u_t0 = u_t1
-            X_bar[:,3] = X_bar[:,3]/sum(X_bar[:,3])
-
-            """
-            RESAMPLING
-            """
-            X_bar = resampler.low_variance_sampler(X_bar)
-            # print "\n\n\n\n\n\nX_bar = ", X_bar
-            if vis_flag:
-                visualize_timestep(X_bar, time_idx)
+        """
+        RESAMPLING
+        """
+        X_bar = resampler.low_variance_sampler(X_bar)
+        # print "\n\n\n\n\n\nX_bar = ", X_bar
+        if vis_flag:
+            visualize_timestep(X_bar, time_idx)
 
 if __name__=="__main__":
     main()
