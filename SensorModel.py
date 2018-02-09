@@ -22,14 +22,14 @@ class SensorModel:
         self.occupancy_map = occupancy_map
         
         self.step_size = 5
-        self.z_max = 8180
+        self.z_max = 8100.0
         
-        self.sig_norm = 250
+        self.sig_norm = 50.0
         self.lambda_short = 0.01
         self.z_hit = 0.7
-        self.z_rand = 0.098
+        self.z_rand = 10.0
         
-        self.z_max_mult = 0.002
+        self.z_max_mult = 20.0
         self.z_short = 0.2
         
         self.xy_step = 3;
@@ -94,25 +94,25 @@ class SensorModel:
             # Gaussian Distribution
                 #print z_t1_arr[i] - z_t1_prior[i/self.step_size]
                 norm_exp = -0.5 * pow((z_t1_arr[i] - z_t1_prior[i/self.step_size]),2) / pow(self.sig_norm,2)
-                normal = (1/np.sqrt(2*np.pi*pow(self.sig_norm,2)))*np.exp(norm_exp)
+                normal = (1.0/np.sqrt(2*np.pi*pow(self.sig_norm,2)))*np.exp(norm_exp)
                 # normal = normal * self.z_hit
             # Uniform Distribution
-                random = 1/self.z_max # * self.z_rand
+                random = 1.0/self.z_max # * self.z_rand
             # Measurement is zmax
             else:
-                random = 0
-                normal = 0
+                random = 0.0
+                normal = 0.0
             # Case 2: Unexpected objects = Exponential Distribution
             if (z_t1_arr[i] <= z_t1_prior[i/self.step_size]):
                 short = (1/(1 - np.exp(-self.lambda_short*z_t1_prior[i/self.step_size])))*self.lambda_short*np.exp(-self.lambda_short*z_t1_arr[i])
                 # short = short * self.z_short
             else:
-                short = 0
+                short = 0.0
             # Case 3: Failures = z_max Uniform Distribution
             if (z_t1_arr[i] >= self.z_max):
-                failure = 1
+                failure = 1.0
             else:
-                failure = 0
+                failure = 0.0
             p_hit = normal*self.z_hit
             p_rand = random*self.z_rand
             p_zshort = short*self.z_short

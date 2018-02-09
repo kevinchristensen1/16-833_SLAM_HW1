@@ -1,7 +1,8 @@
 import numpy as np
 import sys
 import pdb
-
+import math
+from multiprocessing import Process
 from MapReader import MapReader
 from MotionModel import MotionModel
 from SensorModel import SensorModel
@@ -113,8 +114,8 @@ def main():
     sensor_model = SensorModel(occupancy_map)
     resampler = Resampling()
 
-    num_particles = 1000
-    
+    num_particles = 500
+    sumd = 0.0
     # ---------------------------------------------------
     # Create intial set of particles
     X_bar = init_particles_freespace(num_particles, occupancy_map)
@@ -171,7 +172,7 @@ def main():
             
             x_t0 = X_bar[m, 0:3]
             x_t1 = motion_model.update(u_t0, u_t1, x_t0)
-                
+            
             # ---------------------------------------------------
             # For testing Motion Model 
             # X_bar_new[m,:] = np.hstack((x_t1, w_t))
@@ -189,7 +190,11 @@ def main():
                 #time.sleep(10)
             else:
                 X_bar_new[m,:] = np.hstack((x_t1, [[X_bar[m,3]]]))
-
+        
+        xd = u_t1[0] - u_t0[0]
+        yd = u_t1[1] - u_t0[1]
+        d = math.sqrt(xd**2 + yd**2)
+        
         X_bar = X_bar_new
         u_t0 = u_t1
         X_bar[:,3] = X_bar[:,3]/sum(X_bar[:,3])
@@ -197,10 +202,13 @@ def main():
         """
         RESAMPLING
         """
-        #if X_bar[:,3].var() > 1e-8:
-        if time_idx > 50 and time_idx % 8 ==0:
-            X_bar = resampler.low_variance_sampler(X_bar)
         
+        sumd += d
+        #if X_bar[:,3].var() > 1e-8:
+        print 'sumd:' , sumd
+        if sumd > 45.0:
+            X_bar = resampler.low_variance_sampler(X_bar)
+            sumd = 0.0
         #print X_bar[:,3].var()
             
         # print "\n\n\n\n\n\nX_bar = ", X_bar
