@@ -114,7 +114,7 @@ def main():
     sensor_model = SensorModel(occupancy_map)
     resampler = Resampling()
 
-    num_particles = 500
+    num_particles = 1500
     sumd = 0.0
     # ---------------------------------------------------
     # Create intial set of particles

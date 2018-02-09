@@ -24,7 +24,7 @@ class SensorModel:
         self.step_size = 5
         self.z_max = 8100.0
         
-        self.sig_norm = 50.0
+        self.sig_norm = 25.0
         self.lambda_short = 0.01
         self.z_hit = 0.7
         self.z_rand = 10.0
