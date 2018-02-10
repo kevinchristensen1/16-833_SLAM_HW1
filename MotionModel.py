@@ -17,10 +17,10 @@ class MotionModel:
         # ---------------------------------------------------
         # Initialize alpha values 
         # (Coefficients for determining variance when sampling)
-        self.a1 = 0.1
-        self.a2 = 0.1
-        self.a3 = 0.5
-        self.a4 = 0.5
+        self.a1 = 0.002
+        self.a2 = 0.002
+        self.a3 = 0.05
+        self.a4 = 0.05
         # ---------------------------------------------------
         
     def update(self, u_t0, u_t1, x_t0):
