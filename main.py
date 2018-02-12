@@ -2,7 +2,7 @@ import numpy as np
 import sys
 import pdb
 import math
-from multiprocessing import Process
+
 from MapReader import MapReader
 from MotionModel import MotionModel
 from SensorModel import SensorModel
@@ -95,7 +95,7 @@ def main():
     u_t0 : particle state odometry reading [x, y, theta] at time (t-1) [odometry_frame]   
     u_t1 : particle state odometry reading [x, y, theta] at time t [odometry_frame]
     x_t0 : particle state belief [x, y, theta] at time (t-1) [world_frame]
-    x_t1 : particle state belief [x, y, theta] at time t [world_frame]
+    x_t1 : particle state belief [x, qy, theta] at time t [world_frame]
     X_bar : [num_particles x 4] sized array containing [x, y, theta, wt] values for all particles
     z_t : array of 180 range measurements for each laser scan
     """
@@ -114,8 +114,8 @@ def main():
     sensor_model = SensorModel(occupancy_map)
     resampler = Resampling()
 
-    num_particles = 1500
-    sumd = 0.0
+    num_particles = 1000
+    sumd = 0
     # ---------------------------------------------------
     # Create intial set of particles
     X_bar = init_particles_freespace(num_particles, occupancy_map)
@@ -157,7 +157,8 @@ def main():
              ranges = meas_vals[6:-1] # 180 range measurement values from single laser scan
         
         print "Processing time step " + str(time_idx) + " at time " + str(time_stamp) + "s"
-
+        if time_idx < 55:
+            continue
         if (first_time_idx):
             u_t0 = odometry_robot
             first_time_idx = False
@@ -172,7 +173,8 @@ def main():
             
             x_t0 = X_bar[m, 0:3]
             x_t1 = motion_model.update(u_t0, u_t1, x_t0)
-            
+            #motion_last = math.sqrt((x_t1[0,1]-x_t0[0,1])**2 +  (x_t1[0,0]-x_t0[0,0])**2)  
+
             # ---------------------------------------------------
             # For testing Motion Model 
             # X_bar_new[m,:] = np.hstack((x_t1, w_t))
@@ -185,17 +187,25 @@ def main():
             if (meas_type == "L"):
                 z_t = ranges
                 x_l1 = motion_model.laser_position(odometry_laser, u_t1, x_t1)
+                #print w_t.shape
                 w_t = sensor_model.beam_range_finder_model(z_t, x_l1)
+                # #print w_t.shape
+                # if w_t > 0.0 and X_bar[m,3] > 0.0:
+                #     w_new = math.log(X_bar[m,3]) + math.log(w_t)
+                #     w_new = math.exp(w_new)
+                # else:
+                #      w_new = 0.0
                 X_bar_new[m,:] = np.hstack((x_t1, [[w_t]]))
                 #time.sleep(10)
             else:
                 X_bar_new[m,:] = np.hstack((x_t1, [[X_bar[m,3]]]))
-        
-        xd = u_t1[0] - u_t0[0]
-        yd = u_t1[1] - u_t0[1]
-        d = math.sqrt(xd**2 + yd**2)
-        
+       
+        yd = u_t1[1]-u_t0[1]
+        xd =  u_t1[0]-u_t0[0]
+        d = math.sqrt(pow(xd,2) + pow(yd,2))
+        sumd = sumd + d
         X_bar = X_bar_new
+        #print np.amax(X_bar[:,3])
         u_t0 = u_t1
         X_bar[:,3] = X_bar[:,3]/sum(X_bar[:,3])
         # print X_bar[:,3]
@@ -203,12 +213,12 @@ def main():
         RESAMPLING
         """
         
-        sumd += d
+
+        #print sumd
         #if X_bar[:,3].var() > 1e-8:
-        print 'sumd:' , sumd
-        if sumd > 45.0:
-            X_bar = resampler.low_variance_sampler(X_bar)
-            sumd = 0.0
+        if sumd > 10.0:
+            X_bar = resampler.low_variance_sampler_rand(X_bar, occupancy_map)
+            sumd = 0
         #print X_bar[:,3].var()
             
         # print "\n\n\n\n\n\nX_bar = ", X_bar
