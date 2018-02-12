@@ -31,13 +31,13 @@ class SensorModel:
         self.step_size = 5
         self.z_max = 8100.0
         
-        self.sig_norm = 100.0
-        self.lambda_short = 0.01
-        self.z_hit = 0.9
-        self.z_rand = 5.0
+        self.sig_norm = 50.0
+        self.lambda_short = 0.009
+        self.z_hit = 0.65
+        self.z_rand = 230.0
         
-        self.z_max_mult = 50.0
-        self.z_short = 0.2
+        self.z_max_mult = 0.0007
+        self.z_short = 0.09
         
         self.xy_step = 3;
         
@@ -62,11 +62,16 @@ class SensorModel:
         #     return 0.0
         x_curr = int(round(x_t1[0,0]/10,0))
         y_curr = int(round(x_t1[0,1]/10,0))
-        if self.occupancy_map[y_curr][x_curr] < 0 or self.occupancy_map[y_curr][x_curr] > 0.05:
+        occ_value = self.occupancy_map[y_curr][x_curr]
+        if occ_value < 0 or occ_value > 0.05:
             return 0.0
-        
-        q = 0
+        debug = 0
+        q = 0 #math.log(1.0-occ_value/5.0)
         for i in xrange(0,180,self.step_size):
+            if abs(z_t1_arr[i] - z_t1_prior[i/self.step_size]) < 10.0  and debug:
+                print "z_t1_arr:   ", z_t1_arr[i]
+                print "z_t1_prior: ", z_t1_prior[i/self.step_size]
+                
             #   Case 1: Correct range with local measurement noise = Gaussian Distribution
             # & Case 4: Random Measurements = Uniform Distribution
             # 
@@ -98,12 +103,13 @@ class SensorModel:
             p_zshort = short*self.z_short
             p_fail = failure*self.z_max_mult
             p_tot = p_hit + p_rand + p_zshort + p_fail
-        
-            # print "p_hit", p_hit
-            # print "p_rand", p_rand
-            # print "p_zshort", p_zshort
-            # print "p_fail", p_fail
-            # print "p_tot" , p_tot
+            #if abs(z_t1_arr[i] - z_t1_prior[i/self.step_size]) <10.0 and debug:
+            if p_tot > 0.1:
+                print "p_hit", p_hit
+                print "p_rand", p_rand
+                print "p_zshort", p_zshort
+                print "p_fail", p_fail
+                print "p_tot" , p_tot
             
             # multiply probabilties together = add log of probabilities for numerical stability
             if p_tot > 0:

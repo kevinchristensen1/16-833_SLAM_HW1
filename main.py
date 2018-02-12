@@ -114,7 +114,7 @@ def main():
     sensor_model = SensorModel(occupancy_map)
     resampler = Resampling()
 
-    num_particles = 750
+    num_particles = 500
     sumd = 0
     # ---------------------------------------------------
     # Create intial set of particles
@@ -157,7 +157,8 @@ def main():
              ranges = meas_vals[6:-1] # 180 range measurement values from single laser scan
         
         print "Processing time step " + str(time_idx) + " at time " + str(time_stamp) + "s"
-
+        if time_idx < 55:
+            continue
         if (first_time_idx):
             u_t0 = odometry_robot
             first_time_idx = False
@@ -188,7 +189,12 @@ def main():
                 x_l1 = motion_model.laser_position(odometry_laser, u_t1, x_t1)
                 #print w_t.shape
                 w_t = sensor_model.beam_range_finder_model(z_t, x_l1)
-                #print w_t.shape
+                # #print w_t.shape
+                # if w_t > 0.0 and X_bar[m,3] > 0.0:
+                #     w_new = math.log(X_bar[m,3]) + math.log(w_t)
+                #     w_new = math.exp(w_new)
+                # else:
+                #      w_new = 0.0
                 X_bar_new[m,:] = np.hstack((x_t1, [[w_t]]))
                 #time.sleep(10)
             else:
@@ -210,7 +216,7 @@ def main():
 
         #print sumd
         #if X_bar[:,3].var() > 1e-8:
-        if sumd > 100.0:
+        if sumd > 10.0:
             X_bar = resampler.low_variance_sampler(X_bar)
             sumd = 0
         #print X_bar[:,3].var()
