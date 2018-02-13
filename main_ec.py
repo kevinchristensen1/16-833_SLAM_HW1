@@ -195,6 +195,7 @@ def main():
             num_particles = og_num_particles
             u_t0 = u_t1
             visualize_timestep(X_bar, time_idx, time_idx)
+            X_bar_new = np.zeros( (num_particles,4), dtype=np.float64)
             sumd = 0
         else:
             sumd = sumd + d
