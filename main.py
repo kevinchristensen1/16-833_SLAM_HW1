@@ -19,10 +19,22 @@ def visualize_map(occupancy_map):
     plt.ion(); plt.imshow(occupancy_map, cmap='Greys'); plt.axis([0, 800, 0, 800]);
 
 
-def visualize_timestep(X_bar, tstep):
+def visualize_timestep(X_bar, tstep, iter_num=-1):
     x_locs = X_bar[:,0]/10.0
     y_locs = X_bar[:,1]/10.0
     scat = plt.scatter(x_locs, y_locs, c='r', marker='o', s=1)
+    if iter_num > -1:
+        if iter_num < 10:
+
+            name = "../images/frame000" + str(iter_num)
+        elif iter_num < 100:
+            name = "../images/frame00" + str(iter_num)
+        elif iter_num < 1000:
+            name = "../images/frame0" + str(iter_num)
+        else:
+            name = "../images/frame" + str(iter_num)
+        plt.savefig(name)
+
     plt.pause(0.00001)
     scat.remove()
 
@@ -114,7 +126,7 @@ def main():
     sensor_model = SensorModel(occupancy_map)
     resampler = Resampling()
 
-    num_particles = 1000
+    num_particles = 500
     sumd = 0
     # ---------------------------------------------------
     # Create intial set of particles
@@ -138,6 +150,7 @@ def main():
     if vis_flag:
         visualize_map(occupancy_map)
 
+    iter_num = 0
     first_time_idx = True
     for time_idx, line in enumerate(logfile):
 
@@ -157,8 +170,8 @@ def main():
              ranges = meas_vals[6:-1] # 180 range measurement values from single laser scan
         
         print "Processing time step " + str(time_idx) + " at time " + str(time_stamp) + "s"
-        if time_idx < 55:
-            continue
+        # if time_idx < 55:
+        #     continue
         if (first_time_idx):
             u_t0 = odometry_robot
             first_time_idx = False
@@ -217,13 +230,14 @@ def main():
         #print sumd
         #if X_bar[:,3].var() > 1e-8:
         if sumd > 10.0:
-            X_bar = resampler.low_variance_sampler_rand(X_bar, occupancy_map)
+            # X_bar = resampler.low_variance_sampler_rand(X_bar, occupancy_map)
+            X_bar = resampler.low_variance_sampler(X_bar)
             sumd = 0
         #print X_bar[:,3].var()
             
         # print "\n\n\n\n\n\nX_bar = ", X_bar
         if vis_flag:
-            visualize_timestep(X_bar, time_idx)
-
+            visualize_timestep(X_bar, time_idx, time_idx)
+        # iter_num += 1
 if __name__=="__main__":
     main()
