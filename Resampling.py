@@ -49,7 +49,7 @@ class Resampling:
         param[in] X_bar : [num_particles x 4] sized array containing [x, y, theta, wt] values for all particles
         param[out] X_bar_resampled : [num_particles x 4] sized array containing [x, y, theta, wt] values for resampled set of particles
         """
-        rand_num = 50
+        rand_num = 200
         # pdb.set_trace()
         M = X_bar.shape[0]
         M = M - rand_num
