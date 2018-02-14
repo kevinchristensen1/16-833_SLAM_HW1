@@ -128,7 +128,7 @@ def main():
     sensor_model = SensorModel(occupancy_map)
     resampler = Resampling()
 
-    num_particles = 1500
+    num_particles = 3000
     og_num_particles = num_particles
     sumd = 0
     # ---------------------------------------------------
