@@ -118,7 +118,7 @@ def main():
     Initialize Parameters
     """
     src_path_map = '../data/map/wean.dat'
-    src_path_log = '../data/log/robotdata1_lost.log'
+    src_path_log = '../data/log/robotdata1.log'
 
     map_obj = MapReader(src_path_map)
     occupancy_map = map_obj.get_map() 
@@ -247,10 +247,10 @@ def main():
         if sumd > 10.0:
             # X_bar = resampler.low_variance_sampler_rand(X_bar, occupancy_map)
             sumd = 0
-            if X_bar[:,3].var() < 9.0e-9 and num_particles > 500:
+            if X_bar[:,3].var() < 9.0e-8 and num_particles > 500:
                 num_particles = num_particles - 300
                 print 'Adapting particles\nCurrent particle size = ', num_particles
-            elif X_bar[:,3].var() < 3.0e-8 and num_particles > 300:
+            elif X_bar[:,3].var() < 1.0e-7 and num_particles > 300:
                 num_particles = num_particles - 100
                 print 'Adapting particles\nCurrent particle size = ', num_particles
             
