@@ -23,20 +23,22 @@ def visualize_timestep(X_bar, tstep, iter_num=-1):
     x_locs = X_bar[:,0]/10.0
     y_locs = X_bar[:,1]/10.0
     scat = plt.scatter(x_locs, y_locs, c='r', marker='o', s=1)
-    if iter_num > -1:
-        if iter_num < 10:
-
-            name = "../images/frame000" + str(iter_num)
-        elif iter_num < 100:
-            name = "../images/frame00" + str(iter_num)
-        elif iter_num < 1000:
-            name = "../images/frame0" + str(iter_num)
-        else:
-            name = "../images/frame" + str(iter_num)
-        plt.savefig(name)
-
+    num_p = X_bar.shape[0]
+    txt = plt.text(5,5, 'Number of particles: ' + str(num_p))
+    # if iter_num > -1:
+    #     if iter_num < 10:
+    #         name = "../images/frame000" + str(iter_num)
+    #     elif iter_num < 100:
+    #         name = "../images/frame00" + str(iter_num)
+    #     elif iter_num < 1000:
+    #         name = "../images/frame0" + str(iter_num)
+    #     else:
+    #         name = "../images/frame" + str(iter_num)
+    #     plt.savefig(name)
+    
     plt.pause(0.00001)
     scat.remove()
+    txt.remove()
 
 def init_particles_random(num_particles, occupancy_map):
 
@@ -116,7 +118,7 @@ def main():
     Initialize Parameters
     """
     src_path_map = '../data/map/wean.dat'
-    src_path_log = '../data/log/robotdata1.log'
+    src_path_log = '../data/log/robotdata1_lost.log'
 
     map_obj = MapReader(src_path_map)
     occupancy_map = map_obj.get_map() 
@@ -126,7 +128,8 @@ def main():
     sensor_model = SensorModel(occupancy_map)
     resampler = Resampling()
 
-    num_particles = 500
+    num_particles = 1500
+    og_num_particles = num_particles
     sumd = 0
     # ---------------------------------------------------
     # Create intial set of particles
@@ -170,8 +173,7 @@ def main():
              ranges = meas_vals[6:-1] # 180 range measurement values from single laser scan
         
         print "Processing time step " + str(time_idx) + " at time " + str(time_stamp) + "s"
-        # if time_idx < 55:
-        #     continue
+
         if (first_time_idx):
             u_t0 = odometry_robot
             first_time_idx = False
@@ -179,6 +181,23 @@ def main():
 
         X_bar_new = np.zeros( (num_particles,4), dtype=np.float64)
         u_t1 = odometry_robot
+
+        yd = u_t1[1]-u_t0[1]
+        xd =  u_t1[0]-u_t0[0]
+        d = math.sqrt(pow(xd,2) + pow(yd,2))
+        if d < 1.0:
+            visualize_timestep(X_bar, time_idx, time_idx)
+            continue
+        if d > 20: # lost robot
+            print('\nROBOT IS LOST!!!\nResetting particles...\n')
+            X_bar = init_particles_freespace(og_num_particles, occupancy_map)
+            num_particles = og_num_particles
+            u_t0 = u_t1
+            visualize_timestep(X_bar, time_idx, time_idx)
+            sumd = 0
+        else:
+            sumd = sumd + d
+
         for m in range(0, num_particles):
             """
             MOTION MODEL
@@ -196,7 +215,6 @@ def main():
             """
             SENSOR MODEL
             """
-
             if (meas_type == "L"):
                 z_t = ranges
                 x_l1 = motion_model.laser_position(odometry_laser, u_t1, x_t1)
@@ -213,31 +231,38 @@ def main():
             else:
                 X_bar_new[m,:] = np.hstack((x_t1, [[X_bar[m,3]]]))
        
-        yd = u_t1[1]-u_t0[1]
-        xd =  u_t1[0]-u_t0[0]
-        d = math.sqrt(pow(xd,2) + pow(yd,2))
-        sumd = sumd + d
+
+        # sorted_particles = X_bar[X_bar[:,3].argsort()]
+        # print(sorted_particles[499,3])
+
         X_bar = X_bar_new
-        #print np.amax(X_bar[:,3])
+
         u_t0 = u_t1
         X_bar[:,3] = X_bar[:,3]/sum(X_bar[:,3])
-        # print X_bar[:,3]
+
         """
         RESAMPLING
         """
-        
-
-        #print sumd
-        #if X_bar[:,3].var() > 1e-8:
+       
         if sumd > 10.0:
             # X_bar = resampler.low_variance_sampler_rand(X_bar, occupancy_map)
-            X_bar = resampler.low_variance_sampler(X_bar)
             sumd = 0
-        #print X_bar[:,3].var()
+            if X_bar[:,3].var() < 9.0e-9 and num_particles > 500:
+                num_particles = num_particles - 300
+                print 'Adapting particles\nCurrent particle size = ', num_particles
+            elif X_bar[:,3].var() < 3.0e-8 and num_particles > 300:
+                num_particles = num_particles - 100
+                print 'Adapting particles\nCurrent particle size = ', num_particles
             
-        # print "\n\n\n\n\n\nX_bar = ", X_bar
+            # if num_particles < og_num_particles and X_bar[:,3].var() > 5.0e-7:
+            #     num_particles = num_particles + 100
+            #     print 'Adapting particles\nCurrent particle size = ', num_particles
+            
+            X_bar = resampler.low_variance_sampler(X_bar, num_particles)
+            #print X_bar[:,3].var()
+            
         if vis_flag:
             visualize_timestep(X_bar, time_idx, time_idx)
-        # iter_num += 1
+
 if __name__=="__main__":
     main()

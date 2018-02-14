@@ -19,13 +19,14 @@ class Resampling:
         """
         pass
 
-    def low_variance_sampler(self, X_bar):
+    def low_variance_sampler(self, X_bar,num_particles):
         """
         param[in] X_bar : [num_particles x 4] sized array containing [x, y, theta, wt] values for all particles
         param[out] X_bar_resampled : [num_particles x 4] sized array containing [x, y, theta, wt] values for resampled set of particles
         """
         # pdb.set_trace()
-        M = X_bar.shape[0]
+        #M = X_bar.shape[0]
+        M = num_particles
         # print "\n\n\n\n\n\nX_bar = ", X_bar
         r = np.random.uniform(0, 1.0/M)
         # print "r = ", r
@@ -44,7 +45,7 @@ class Resampling:
 
         return X_bar_resampled
 
-    def low_variance_sampler_rand(self, X_bar, occupancy_map):
+    def low_variance_sampler_rand(self, X_bar,  occupancy_map):
         """
         param[in] X_bar : [num_particles x 4] sized array containing [x, y, theta, wt] values for all particles
         param[out] X_bar_resampled : [num_particles x 4] sized array containing [x, y, theta, wt] values for resampled set of particles
