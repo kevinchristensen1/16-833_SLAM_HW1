@@ -118,7 +118,7 @@ def main():
     Initialize Parameters
     """
     src_path_map = '../data/map/wean.dat'
-    src_path_log = '../data/log/robotdata1.log'
+    src_path_log = '../data/log/robotdata1_lost.log'
 
     map_obj = MapReader(src_path_map)
     occupancy_map = map_obj.get_map() 
@@ -192,6 +192,7 @@ def main():
             print('\nROBOT IS LOST!!!\nResetting particles...\n')
             X_bar = init_particles_freespace(og_num_particles, occupancy_map)
             num_particles = og_num_particles
+            X_bar_new = np.zeros( (num_particles,4), dtype=np.float64)
             u_t0 = u_t1
             visualize_timestep(X_bar, time_idx, time_idx)
             sumd = 0
