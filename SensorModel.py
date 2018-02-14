@@ -33,11 +33,11 @@ class SensorModel:
         
         self.sig_norm = 50.0
         self.lambda_short = 0.009
-        self.z_hit = 0.67
-        self.z_rand = 200.0
+        self.z_hit = 0.65
+        self.z_rand = 230.0
         
         self.z_max_mult = 0.0007
-        self.z_short = 0.10
+        self.z_short = 0.09
         
         self.xy_step = 3;
         
